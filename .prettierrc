@@ -1,0 +1,17 @@
+{
+  "endOfLine": "lf",
+  "semi": true,
+  "singleQuote": true,
+  "arrowParens": "avoid",
+  "tabWidth": 2,
+  "trailingComma": "es5",
+  "plugins": ["@ianvs/prettier-plugin-sort-imports"],
+  "importOrder": [
+    "^(react/(.*)$)|^(react$)",
+    "<THIRD_PARTY_MODULES>",
+    "",
+    "^types$",
+    "^[./]"
+  ],
+  "importOrderParserPlugins": ["typescript", "jsx", "decorators-legacy"]
+}

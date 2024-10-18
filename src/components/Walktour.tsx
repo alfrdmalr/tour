@@ -1,12 +1,34 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
+
+import {
+  Coords,
+  Dims,
+  getElementDims,
+  getNearestScrollAncestor,
+  getTargetInfo,
+  getValidPortalRoot,
+} from '../utils/dom';
+import { centerViewportAroundElements } from '../utils/offset';
+import {
+  CardinalOrientation,
+  getTargetPosition,
+  getTooltipPosition,
+  OrientationCoords,
+} from '../utils/positioning';
+import { scrollToDestination } from '../utils/scroll';
+import {
+  debounce,
+  getIdString,
+  setFocusTrap,
+  setNextOnTargetClick,
+  setTargetWatcher,
+  setTourUpdateListener,
+  shouldScroll,
+  shouldUpdate,
+} from '../utils/tour';
 import { Mask, MaskOptions } from './Mask';
 import { Tooltip } from './Tooltip';
-import { CardinalOrientation, OrientationCoords, getTargetPosition, getTooltipPosition } from '../utils/positioning';
-import { Coords, getNearestScrollAncestor, getValidPortalRoot, Dims, getElementDims, getTargetInfo } from '../utils/dom';
-import { scrollToDestination } from '../utils/scroll';
-import { centerViewportAroundElements } from '../utils/offset';
-import { debounce, getIdString, shouldUpdate, setFocusTrap, setTargetWatcher, setTourUpdateListener, shouldScroll, setNextOnTargetClick } from '../utils/tour';
 
 export interface WalktourLogic {
   next: (fromTarget?: boolean) => void;
@@ -25,10 +47,17 @@ export interface WalktourOptions {
   orientationPreferences?: CardinalOrientation[];
   maskPadding?: number;
   maskRadius?: number;
+  maskFill?: string;
   tooltipSeparation?: number;
   transition?: string;
-  customTitleRenderer?: (title?: string, tourLogic?: WalktourLogic) => JSX.Element;
-  customDescriptionRenderer?: (description: string, tourLogic?: WalktourLogic) => JSX.Element;
+  customTitleRenderer?: (
+    title?: string,
+    tourLogic?: WalktourLogic
+  ) => JSX.Element;
+  customDescriptionRenderer?: (
+    description: string,
+    tourLogic?: WalktourLogic
+  ) => JSX.Element;
   customFooterRenderer?: (tourLogic?: WalktourLogic) => JSX.Element;
   customTooltipRenderer?: (tourLogic?: WalktourLogic) => JSX.Element;
   customNextFunc?: (tourLogic: WalktourLogic, fromTarget?: boolean) => void;
@@ -41,7 +70,9 @@ export interface WalktourOptions {
   disablePrev?: boolean;
   disableClose?: boolean;
   disableAutoScroll?: boolean;
-  getPositionFromCandidates?: (candidates: OrientationCoords[]) => OrientationCoords;
+  getPositionFromCandidates?: (
+    candidates: OrientationCoords[]
+  ) => OrientationCoords;
   movingTarget?: boolean;
   updateInterval?: number;
   renderTolerance?: number;
@@ -75,32 +106,33 @@ export interface WalktourProps extends WalktourOptions {
 const walktourDefaultProps: Partial<WalktourProps> = {
   maskPadding: 5,
   maskRadius: 0,
+  maskFill: 'black',
   tooltipSeparation: 10,
   transition: 'top 300ms ease, left 300ms ease',
   disableMaskInteraction: false,
   disableCloseOnClick: false,
   zIndex: 9999,
   renderTolerance: 2,
-  updateInterval: 500
-}
+  updateInterval: 500,
+};
 
 const basePortalString: string = 'walktour-portal';
 const baseMaskString: string = 'walktour-mask';
 const baseTooltipContainerString: string = 'walktour-tooltip-container';
 
 export const Walktour = (props: WalktourProps) => {
-
-  const {
-    steps,
-    initialStepIndex,
-    isOpen
-  } = props;
+  const { steps, initialStepIndex, isOpen } = props;
 
   const controlled = isOpen !== undefined;
-  const [isOpenState, setIsOpenState] = React.useState<boolean>(isOpen == undefined);
+  const [isOpenState, setIsOpenState] = React.useState<boolean>(
+    isOpen == undefined
+  );
   const [target, setTarget] = React.useState<HTMLElement>(undefined);
-  const [tooltipPosition, setTooltipPosition] = React.useState<OrientationCoords>(undefined);
-  const [currentStepIndex, setCurrentStepIndex] = React.useState<number>(initialStepIndex || 0);
+  const [tooltipPosition, setTooltipPosition] =
+    React.useState<OrientationCoords>(undefined);
+  const [currentStepIndex, setCurrentStepIndex] = React.useState<number>(
+    initialStepIndex || 0
+  );
   const [tourRoot, setTourRoot] = React.useState<Element>(undefined);
 
   const cleanupRefs = React.useRef<Array<() => void>>([]);
@@ -115,13 +147,14 @@ export const Walktour = (props: WalktourProps) => {
   const options: WalktourOptions & WalktourProps & Step = {
     ...walktourDefaultProps,
     ...props,
-    ...currentStepContent
-  }
+    ...currentStepContent,
+  };
 
   const {
     selector,
     maskPadding,
     maskRadius,
+    maskFill,
     disableMaskInteraction,
     disableCloseOnClick,
     tooltipSeparation,
@@ -151,14 +184,14 @@ export const Walktour = (props: WalktourProps) => {
     allowForeignTarget,
     nextOnTargetClick,
     validateNextOnTargetClick,
-    renderMask
+    renderMask,
   } = options;
 
   React.useEffect(() => {
     return cleanup;
   }, []);
 
-  // set/reset the tour root 
+  // set/reset the tour root
   React.useEffect(() => {
     let root: Element;
     if (rootSelector) {
@@ -171,24 +204,29 @@ export const Walktour = (props: WalktourProps) => {
     if (tourOpen !== false && root !== tourRoot) {
       setTourRoot(root);
     }
-  }, [rootSelector, portal.current, tourOpen])
+  }, [rootSelector, portal.current, tourOpen]);
 
   // update tour when step changes
   React.useEffect(() => {
     if (debug) {
-      console.log(`walktour debug (${identifier ? `${identifier}, ` : ""}${currentStepIndex}):`, {
-        "options:": options,
-        "tour logic:": tourLogic,
-        "previous state/vars:": {
-          isOpenState,
-          tourRoot,
-          target,
-          tooltipPosition,
-          targetPosition,
-          currentStepIndex,
-          targetSize,
+      console.log(
+        `walktour debug (${
+          identifier ? `${identifier}, ` : ''
+        }${currentStepIndex}):`,
+        {
+          'options:': options,
+          'tour logic:': tourLogic,
+          'previous state/vars:': {
+            isOpenState,
+            tourRoot,
+            target,
+            tooltipPosition,
+            targetPosition,
+            currentStepIndex,
+            targetSize,
+          },
         }
-      })
+      );
     }
     if (tooltip.current && tourOpen) {
       tooltip.current.focus();
@@ -196,8 +234,14 @@ export const Walktour = (props: WalktourProps) => {
     } else {
       cleanup();
     }
-  }, [currentStepIndex, currentStepContent, tourOpen, tourRoot, tooltip.current])
-  
+  }, [
+    currentStepIndex,
+    currentStepContent,
+    tourOpen,
+    tourRoot,
+    tooltip.current,
+  ]);
+
   // update tooltip and target position in state
   const updateTour = () => {
     cleanup();
@@ -212,13 +256,18 @@ export const Walktour = (props: WalktourProps) => {
       return;
     }
 
-    const targetScope: Element | Document = allowForeignTarget ? document : root;
+    const targetScope: Element | Document = allowForeignTarget
+      ? document
+      : root;
     const getTarget = (): HTMLElement => targetScope.querySelector(selector);
     const currentTarget: HTMLElement = getTarget();
-    const currentTargetPosition: Coords = getTargetPosition(root, currentTarget);
+    const currentTargetPosition: Coords = getTargetPosition(
+      root,
+      currentTarget
+    );
     const currentTargetDims: Dims = getElementDims(currentTarget);
     const smartPadding: number = disableMask ? 0 : maskPadding;
-    
+
     const tooltipPosition: OrientationCoords = getTooltipPosition({
       target: currentTarget,
       tooltip: tooltipContainer,
@@ -229,7 +278,7 @@ export const Walktour = (props: WalktourProps) => {
       getPositionFromCandidates,
       disableAutoScroll,
       allowForeignTarget,
-      selector
+      selector,
     });
 
     setTarget(currentTarget);
@@ -238,79 +287,108 @@ export const Walktour = (props: WalktourProps) => {
     targetSize.current = currentTargetDims;
 
     //focus trap subroutine
-    const cleanupFocusTrap = setFocusTrap(tooltipContainer, currentTarget, disableMaskInteraction);
+    const cleanupFocusTrap = setFocusTrap(
+      tooltipContainer,
+      currentTarget,
+      disableMaskInteraction
+    );
     cleanupRefs.current.push(cleanupFocusTrap);
 
-    if (shouldScroll({
-      disableAutoScroll,
-      allowForeignTarget,
-      selector,
-      root,
-      target: currentTarget,
-      tooltip: tooltipContainer,
-      tooltipPosition: tooltipPosition.coords
-    })) {
-      scrollToDestination(root, centerViewportAroundElements(root, tooltipContainer, currentTarget, tooltipPosition.coords, currentTargetPosition), disableSmoothScroll)
+    if (
+      shouldScroll({
+        disableAutoScroll,
+        allowForeignTarget,
+        selector,
+        root,
+        target: currentTarget,
+        tooltip: tooltipContainer,
+        tooltipPosition: tooltipPosition.coords,
+      })
+    ) {
+      scrollToDestination(
+        root,
+        centerViewportAroundElements(
+          root,
+          tooltipContainer,
+          currentTarget,
+          tooltipPosition.coords,
+          currentTargetPosition
+        ),
+        disableSmoothScroll
+      );
     }
 
     if (!disableListeners) {
       const conditionalUpdate = () => {
         const availableTarget = getTarget();
 
-        if (shouldUpdate({
-          root,
-          tooltipPosition: tooltipPosition.coords,
-          tooltip: tooltipContainer,
-          target: availableTarget,
-          disableAutoScroll,
-          rerenderTolerance: renderTolerance,
-          targetCoords: targetPosition.current,
-          targetDims: targetSize.current,
-          allowForeignTarget,
-          selector,
-          getPositionFromCandidates,
-          orientationPreferences, 
-          padding: smartPadding, 
-          tooltipSeparation
-        })) {
+        if (
+          shouldUpdate({
+            root,
+            tooltipPosition: tooltipPosition.coords,
+            tooltip: tooltipContainer,
+            target: availableTarget,
+            disableAutoScroll,
+            rerenderTolerance: renderTolerance,
+            targetCoords: targetPosition.current,
+            targetDims: targetSize.current,
+            allowForeignTarget,
+            selector,
+            getPositionFromCandidates,
+            orientationPreferences,
+            padding: smartPadding,
+            tooltipSeparation,
+          })
+        ) {
           updateTour();
         }
-      }
+      };
 
-      const cleanupUpdateListener = setTourUpdateListener({ update: debounce(conditionalUpdate), customSetListener: setUpdateListener, customRemoveListener: removeUpdateListener });
-      cleanupRefs.current.push(cleanupUpdateListener)
+      const cleanupUpdateListener = setTourUpdateListener({
+        update: debounce(conditionalUpdate),
+        customSetListener: setUpdateListener,
+        customRemoveListener: removeUpdateListener,
+      });
+      cleanupRefs.current.push(cleanupUpdateListener);
 
       // if the user requests a watcher and there's supposed to be a target
       if (movingTarget && (currentTarget || selector)) {
-        const cleanupWatcher = setTargetWatcher(conditionalUpdate, updateInterval)
+        const cleanupWatcher = setTargetWatcher(
+          conditionalUpdate,
+          updateInterval
+        );
         cleanupRefs.current.push(cleanupWatcher);
       }
 
       if (nextOnTargetClick && currentTarget) {
-        const cleanupTargetTether = setNextOnTargetClick(currentTarget, tourLogic.next, validateNextOnTargetClick)
+        const cleanupTargetTether = setNextOnTargetClick(
+          currentTarget,
+          tourLogic.next,
+          validateNextOnTargetClick
+        );
         cleanupRefs.current.push(cleanupTargetTether);
       }
     }
-  }
+  };
 
   const goToStep = (stepIndex: number) => {
     if (stepIndex >= steps.length || stepIndex < 0) {
       return;
     }
     setCurrentStepIndex(stepIndex);
-  }
+  };
 
   const cleanup = () => {
     cleanupRefs.current.forEach(f => f());
     cleanupRefs.current = [];
-  }
+  };
 
   const closeTour = (reset?: boolean) => {
     reset && goToStep(0);
     !controlled && setIsOpenState(false);
     cleanup();
     target && target.focus(); // return focus to last target when closed
-  }
+  };
 
   const baseLogic: WalktourLogic = {
     next: () => goToStep(currentStepIndex + 1),
@@ -320,43 +398,45 @@ export const Walktour = (props: WalktourProps) => {
     stepContent: { ...options }, //pass options in as well to expose any defaults that aren't specified
     stepIndex: currentStepIndex,
     allSteps: steps,
-    tooltipPosition
+    tooltipPosition,
   };
 
   const tourLogic: WalktourLogic = {
     ...baseLogic,
-    ...customNextFunc && { next: (fromTarget?: boolean) => customNextFunc(baseLogic, fromTarget) },
-    ...customPrevFunc && { prev: () => customPrevFunc(baseLogic) },
-    ...customCloseFunc && { close: () => customCloseFunc(baseLogic) }
+    ...(customNextFunc && {
+      next: (fromTarget?: boolean) => customNextFunc(baseLogic, fromTarget),
+    }),
+    ...(customPrevFunc && { prev: () => customPrevFunc(baseLogic) }),
+    ...(customCloseFunc && { close: () => customCloseFunc(baseLogic) }),
   };
 
   const keyPressHandler = (event: React.KeyboardEvent) => {
     switch (event.key) {
-      case "Escape":
+      case 'Escape':
         event.preventDefault();
         if (!disableClose) {
           tourLogic.close();
         }
         break;
-      case "ArrowRight":
+      case 'ArrowRight':
         event.preventDefault();
         if (!disableNext) {
-          tourLogic.next()
+          tourLogic.next();
         }
         break;
-      case "ArrowLeft":
+      case 'ArrowLeft':
         event.preventDefault();
         if (!disablePrev) {
           tourLogic.prev();
         }
         break;
     }
-  }
+  };
 
   //don't render if the tour is hidden or if there's no step data
   if (!tourOpen || !currentStepContent) {
     return null;
-  };
+  }
 
   const portalStyle: React.CSSProperties = {
     position: 'absolute',
@@ -364,29 +444,29 @@ export const Walktour = (props: WalktourProps) => {
     left: 0,
     zIndex: zIndex,
     visibility: tooltipPosition ? 'visible' : 'hidden',
-    pointerEvents: "none"
-  }
+    pointerEvents: 'none',
+  };
 
   const tooltipContainerStyle: React.CSSProperties = {
     position: 'absolute',
     top: tooltipPosition?.coords?.y,
     left: tooltipPosition?.coords?.x,
     transition: transition,
-    pointerEvents: 'auto'
-  }
+    pointerEvents: 'auto',
+  };
 
   const MaskTag = renderMask ? renderMask : Mask;
 
   // render mask, tooltip, and their shared "portal" container
   const render = () => (
     <div
-      ref={ref => portal.current = ref}
+      ref={ref => (portal.current = ref)}
       id={getIdString(basePortalString, identifier)}
       style={portalStyle}
     >
-      {tourRoot &&
+      {tourRoot && (
         <>
-          {!disableMask &&
+          {!disableMask && (
             <MaskTag
               maskId={getIdString(baseMaskString, identifier)}
               targetInfo={getTargetInfo(tourRoot, target)}
@@ -396,26 +476,27 @@ export const Walktour = (props: WalktourProps) => {
               radius={maskRadius}
               tourRoot={tourRoot}
               close={tourLogic.close}
+              maskFill={maskFill}
             />
-          }
+          )}
 
           <div
-            ref={ref => tooltip.current = ref}
+            ref={ref => (tooltip.current = ref)}
             id={getIdString(baseTooltipContainerString, identifier)}
             style={tooltipContainerStyle}
             onKeyDown={keyPressHandler}
             tabIndex={0}
           >
-            {customTooltipRenderer
-              ? customTooltipRenderer(tourLogic)
-              : <Tooltip
-                {...tourLogic}
-              />
-            }
+            {customTooltipRenderer ? (
+              customTooltipRenderer(tourLogic)
+            ) : (
+              <Tooltip {...tourLogic} />
+            )}
           </div>
         </>
-      }
-    </div>);
+      )}
+    </div>
+  );
 
   // on first render, put everything in its normal context.
   // after first render (once we've determined the tour root) spawn a portal there for rendering.
@@ -424,5 +505,4 @@ export const Walktour = (props: WalktourProps) => {
   } else {
     return render();
   }
-}
-
+};

@@ -4,3 +4,15 @@ node_modules
 dist
 .vscode
 .parcel-cache
+
+# Yarn Plug'n'Play files (optional if using node-modules linker)
+.pnp.*
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Optional: If you don't want to commit the cache
+.yarn/cache
+
+# Optional: If you're managing Yarn globally, you can ignore releases
+.yarn/releases

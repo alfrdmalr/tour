@@ -1,5 +1,12 @@
-import { Dims, Coords, getElementCoords, isDefaultScrollingElement, getElementDims, isWithinAt } from "./dom";
-import { addAppropriateOffset, getCurrentScrollOffset } from "./offset";
+import {
+  Coords,
+  Dims,
+  getElementCoords,
+  getElementDims,
+  isDefaultScrollingElement,
+  isWithinAt,
+} from './dom';
+import { addAppropriateOffset, getCurrentScrollOffset } from './offset';
 
 export function getViewportHeight(root: Element): number {
   return root.clientHeight;
@@ -12,8 +19,8 @@ export function getViewportWidth(root: Element): number {
 export function getViewportDims(root: Element): Dims {
   return {
     width: getViewportWidth(root),
-    height: getViewportHeight(root)
-  }
+    height: getViewportHeight(root),
+  };
 }
 
 export function getViewportScrollHeight(root: Element): number {
@@ -27,16 +34,16 @@ export function getViewportScrollWidth(root: Element): number {
 export function getViewportScrollDims(root: Element): Dims {
   return {
     width: getViewportScrollWidth(root),
-    height: getViewportScrollHeight(root)
-  }
+    height: getViewportScrollHeight(root),
+  };
 }
 
 export function getViewportStart(root: Element): Coords {
   if (isDefaultScrollingElement(root)) {
     return {
       x: 0,
-      y: 0
-    }
+      y: 0,
+    };
   } else {
     return getElementCoords(root);
   }
@@ -46,10 +53,9 @@ export function getViewportEnd(root: Element): Coords {
   const startCoords: Coords = getViewportStart(root);
   return {
     x: startCoords.x + getViewportWidth(root),
-    y: startCoords.y + getViewportHeight(root)
-  }
+    y: startCoords.y + getViewportHeight(root),
+  };
 }
-
 
 export function getViewportScrollStart(root: Element): Coords {
   const curScrollOffset: Coords = getCurrentScrollOffset(root);
@@ -57,8 +63,8 @@ export function getViewportScrollStart(root: Element): Coords {
 
   return {
     x: start.x - curScrollOffset.x,
-    y: start.y - curScrollOffset.y
-  }
+    y: start.y - curScrollOffset.y,
+  };
 }
 
 export function getViewportScrollEnd(root: Element): Coords {
@@ -66,27 +72,41 @@ export function getViewportScrollEnd(root: Element): Coords {
   const { width, height } = getViewportScrollDims(root);
   return {
     x: startCoords.x + width,
-    y: startCoords.y + height
+    y: startCoords.y + height,
   };
 }
 
-export function isElementInView(root: Element, element: HTMLElement, atPosition?: Coords, needsAdjusting?: boolean): boolean {
+export function isElementInView(
+  root: Element,
+  element: HTMLElement,
+  atPosition?: Coords,
+  needsAdjusting?: boolean
+): boolean {
   if (!root || !element) {
     return false;
   }
-  const explicitPosition: Coords = atPosition && (needsAdjusting ? addAppropriateOffset(root, atPosition) : atPosition)
-  const position: Coords = explicitPosition || addAppropriateOffset(root, getElementCoords(element));
+  const explicitPosition: Coords =
+    atPosition &&
+    (needsAdjusting ? addAppropriateOffset(root, atPosition) : atPosition);
+  const position: Coords =
+    explicitPosition || addAppropriateOffset(root, getElementCoords(element));
   const elementDims: Dims = getElementDims(element);
-  const startCoords: Coords = addAppropriateOffset(root, getViewportStart(root));
+  const startCoords: Coords = addAppropriateOffset(
+    root,
+    getViewportStart(root)
+  );
   const viewportDims: Dims = getViewportDims(root);
 
   return isWithinAt(elementDims, viewportDims, position, startCoords);
 }
 
-// if directed to scroll to a position which is outside the bounds of the scrolling container, the 
+// if directed to scroll to a position which is outside the bounds of the scrolling container, the
 // viewport will stop at the edges of that container. We want to get the coords that the viewport
 // will end up when given certain coords
-export function getScrolledViewportPosition(root: Element, scrollDestination: Coords) {
+export function getScrolledViewportPosition(
+  root: Element,
+  scrollDestination: Coords
+) {
   const dims = getViewportDims(root);
   const startCoords = getViewportScrollStart(root);
   const endCoords = getViewportScrollEnd(root);

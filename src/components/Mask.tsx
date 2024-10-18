@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import { Coords, Dims, ElementInfo } from '../utils/dom';
 import { getViewportScrollDims } from '../utils/viewport';
 
@@ -11,22 +12,31 @@ export interface MaskOptions {
   disableMaskInteraction?: boolean;
   disableCloseOnClick?: boolean;
   maskId: string;
+  maskFill?: string;
 }
 
 export function Mask(props: MaskOptions): JSX.Element {
-  const { targetInfo, disableMaskInteraction, padding, radius, tourRoot, close, disableCloseOnClick, maskId } = props;
-  const {width: containerWidth, height: containerHeight} = getViewportScrollDims(tourRoot);
+  const {
+    targetInfo,
+    disableMaskInteraction,
+    padding,
+    radius,
+    tourRoot,
+    close,
+    disableCloseOnClick,
+    maskId,
+    maskFill,
+  } = props;
+  const { width: containerWidth, height: containerHeight } =
+    getViewportScrollDims(tourRoot);
   const pathId = `clip-path-${maskId}`;
 
-  const getCutoutPath = (target?: {coords: Coords, dims: Dims}): string => {
+  const getCutoutPath = (target?: { coords: Coords; dims: Dims }): string => {
     if (!target) {
       return '';
     }
 
-    const {
-      dims,
-      coords
-    } = target;
+    const { dims, coords } = target;
 
     const cutoutTop: number = coords.y - padding;
     const cutoutLeft: number = coords.x - padding;
@@ -38,13 +48,21 @@ export function Mask(props: MaskOptions): JSX.Element {
               L 0, ${containerHeight}
               L ${cutoutLeft}, ${containerHeight}
               L ${cutoutLeft}, ${cutoutTop + radius}
-              Q ${cutoutLeft}, ${cutoutTop}, ${cutoutLeft + radius}, ${cutoutTop}
+              Q ${cutoutLeft}, ${cutoutTop}, ${
+                cutoutLeft + radius
+              }, ${cutoutTop}
               L ${cutoutRight - radius}, ${cutoutTop}
-              Q ${cutoutRight}, ${cutoutTop}, ${cutoutRight}, ${cutoutTop + radius}
+              Q ${cutoutRight}, ${cutoutTop}, ${cutoutRight}, ${
+                cutoutTop + radius
+              }
               L ${cutoutRight}, ${cutoutBottom - radius}
-              Q ${cutoutRight}, ${cutoutBottom}, ${cutoutRight - radius}, ${cutoutBottom}
+              Q ${cutoutRight}, ${cutoutBottom}, ${
+                cutoutRight - radius
+              }, ${cutoutBottom}
               L ${cutoutLeft + radius}, ${cutoutBottom}
-              Q ${cutoutLeft}, ${cutoutBottom}, ${cutoutLeft}, ${cutoutBottom - radius}
+              Q ${cutoutLeft}, ${cutoutBottom}, ${cutoutLeft}, ${
+                cutoutBottom - radius
+              }
               L ${cutoutLeft}, ${containerHeight}
               L ${containerWidth}, ${containerHeight}
               L ${containerWidth}, 0`;
@@ -60,24 +78,23 @@ export function Mask(props: MaskOptions): JSX.Element {
             L ${cutoutLeft}, ${containerHeight}
             L ${containerWidth}, ${containerHeight}
             L ${containerWidth}, 0`;
-  }
+  };
 
   const svgStyle: React.CSSProperties = {
     height: containerHeight,
     width: containerWidth,
     pointerEvents: disableMaskInteraction ? 'auto' : 'none',
-  }
+  };
 
   return (
     <svg style={svgStyle}>
-      {targetInfo &&
+      {targetInfo && (
         <defs>
           <clipPath id={pathId}>
-            <path d={getCutoutPath(targetInfo)}
-            />
+            <path d={getCutoutPath(targetInfo)} />
           </clipPath>
         </defs>
-      }
+      )}
 
       <rect
         onClick={disableCloseOnClick ? undefined : close}
@@ -85,9 +102,9 @@ export function Mask(props: MaskOptions): JSX.Element {
         y={0}
         width={containerWidth}
         height={containerHeight}
-        fill='black'
+        fill={maskFill ?? 'black'}
         fillOpacity={0.3}
-        pointerEvents='auto'
+        pointerEvents="auto"
         clipPath={targetInfo ? `url(#${pathId})` : undefined}
       />
     </svg>

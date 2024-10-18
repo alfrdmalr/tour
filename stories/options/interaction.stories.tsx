@@ -1,22 +1,25 @@
 import * as React from 'react';
+import { boolean, withKnobs } from '@storybook/addon-knobs';
+
 import { playgroundSetup, primarySteps } from '../../demo/setup';
 import { Walktour } from '../../src/components/Walktour';
-import { withKnobs, boolean } from '@storybook/addon-knobs';
 import { buttonStepIndex } from '../utils/setup';
 
-const playgroundDecorator = (storyFunction: () => Node) => <>
-  {playgroundSetup({ buttonText: "Click Me", onButtonClick: () => alert("Thanks!") })}
-  {storyFunction()}
-</>
+const playgroundDecorator = (storyFunction: () => Node) => (
+  <>
+    {playgroundSetup({
+      buttonText: 'Click Me',
+      onButtonClick: () => alert('Thanks!'),
+    })}
+    {storyFunction()}
+  </>
+);
 
 export default {
-  title: "Walktour|Options/Interaction",
+  title: 'Walktour|Options/Interaction',
   component: Walktour,
-  decorators: [
-    withKnobs,
-    playgroundDecorator
-  ]
-}
+  decorators: [withKnobs, playgroundDecorator],
+};
 
 export const all = () => (
   <Walktour
@@ -27,7 +30,7 @@ export const all = () => (
     disablePrev={boolean('disablePrev', false)}
     disableClose={boolean('disableClose', true)}
   />
-)
+);
 
 export const disableCloseOnClick = () => (
   <Walktour
@@ -35,7 +38,7 @@ export const disableCloseOnClick = () => (
     steps={primarySteps()}
     disableCloseOnClick={boolean('disableCloseOnClick', true)}
   />
-)
+);
 
 export const disableMaskInteraction = () => (
   <Walktour
@@ -43,7 +46,7 @@ export const disableMaskInteraction = () => (
     steps={primarySteps()}
     disableMaskInteraction={boolean('disableMaskInteraction', true)}
   />
-)
+);
 
 export const disableActions = () => (
   <Walktour
@@ -52,4 +55,4 @@ export const disableActions = () => (
     disablePrev={boolean('disablePrev', false)}
     disableClose={boolean('disableClose', true)}
   />
-)
+);

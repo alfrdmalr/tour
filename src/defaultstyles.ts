@@ -1,5 +1,4 @@
-import { CSSProperties } from "react";
-
+import { CSSProperties } from 'react';
 
 export interface WalktourStyles {
   tooltip: CSSProperties;
@@ -15,20 +14,20 @@ export interface WalktourStyles {
 const contentMargin: number = 4;
 const baseButtonStyle: React.CSSProperties = {
   cursor: 'pointer',
-  padding: '4px 16px', 
+  padding: '4px 16px',
   textAlign: 'center',
   border: 0,
   borderRadius: 3,
   backgroundColor: '#0084ff',
   color: '#fff',
   fontSize: 14,
-  margin: contentMargin
+  margin: contentMargin,
 };
 
 export const defaultStyles: WalktourStyles = {
   tooltip: {
-    display: 'flex', 
-    flexDirection: 'column', 
+    display: 'flex',
+    flexDirection: 'column',
     zIndex: 9999,
     fontFamily: 'Roboto, sans-serif',
     fontSize: 14,
@@ -43,7 +42,7 @@ export const defaultStyles: WalktourStyles = {
   footer: {
     display: 'flex',
     justifyContent: 'center',
-    marginTop: contentMargin
+    marginTop: contentMargin,
   },
   title: {
     margin: contentMargin,
@@ -54,26 +53,26 @@ export const defaultStyles: WalktourStyles = {
   },
   primaryButton: {
     ...baseButtonStyle,
-    backgroundColor: "#0084ff",
-    color: "#ffffff"
+    backgroundColor: '#0084ff',
+    color: '#ffffff',
   },
   secondaryButton: {
     ...baseButtonStyle,
-    backgroundColor: "#8400ff",
-    color: "#fff",
-    border: "solid 1px #8400ff"
+    backgroundColor: '#8400ff',
+    color: '#fff',
+    border: 'solid 1px #8400ff',
   },
   tertiaryButton: {
     ...baseButtonStyle,
     marginRight: 'auto',
     backgroundColor: `transparent`,
-    color: "#025c53",
-    border: "solid 1px #025c53"
+    color: '#025c53',
+    border: 'solid 1px #025c53',
   },
   disabledButton: {
     ...baseButtonStyle,
-    backgroundColor: "#bebebe",
-    color: "#989898",
-    cursor: "default"
+    backgroundColor: '#bebebe',
+    color: '#989898',
+    cursor: 'default',
   },
-}
+};

@@ -1,25 +1,45 @@
-import { Coords, dist, Dims, areaDiff, fitsWithin, getElementDims, getEdgeFocusables, isForeignTarget } from "./dom";
-import { getTargetPosition, GetTooltipPositionArgs, getTooltipPosition, OrientationCoords } from "./positioning";
-import { isElementInView, getViewportDims } from "./viewport";
-import { TAB_KEYCODE } from "./constants";
+import { TAB_KEYCODE } from './constants';
+import {
+  areaDiff,
+  Coords,
+  Dims,
+  dist,
+  fitsWithin,
+  getEdgeFocusables,
+  getElementDims,
+  isForeignTarget,
+} from './dom';
+import {
+  getTargetPosition,
+  getTooltipPosition,
+  GetTooltipPositionArgs,
+  OrientationCoords,
+} from './positioning';
+import { getViewportDims, isElementInView } from './viewport';
 
 //miscellaneous tour utilities
 
-export function debounce<T extends any[]>(f: (...args: T) => void, interval: number = 300) {
+export function debounce<T extends any[]>(
+  f: (...args: T) => void,
+  interval: number = 300
+) {
   let timeoutId: number;
   return (...args: T) => {
     if (timeoutId) {
       window.clearTimeout(timeoutId);
     }
     timeoutId = window.setTimeout(() => f(...args), interval);
-  }
+  };
 }
 
 export function getIdString(base: string, identifier?: string): string {
-  return `${base}${identifier ? `-${identifier}` : ``}`
+  return `${base}${identifier ? `-${identifier}` : ``}`;
 }
 
-export function setTargetWatcher(callback: () => void, interval: number): (() => void) {
+export function setTargetWatcher(
+  callback: () => void,
+  interval: number
+): () => void {
   const intervalId: number = window.setInterval(callback, interval);
 
   return () => window.clearInterval(intervalId);
@@ -33,12 +53,15 @@ export interface SetTourUpdateListenerArgs {
 }
 
 export function setTourUpdateListener(args: SetTourUpdateListenerArgs) {
-  const { update, customSetListener, customRemoveListener, event } = { event: 'resize', ...args }
+  const { update, customSetListener, customRemoveListener, event } = {
+    event: 'resize',
+    ...args,
+  };
   if (customSetListener && customRemoveListener) {
     customSetListener(update);
     return () => customRemoveListener(update);
   } else {
-    window.addEventListener(event, update)
+    window.addEventListener(event, update);
     return () => window.removeEventListener(event, update);
   }
 }
@@ -70,16 +93,27 @@ function getFocusTrapHandler(args: FocusTrapArgs): (e: KeyboardEvent) => void {
         start.focus();
       }
     }
-  }
+  };
 }
 
-export const setFocusTrap = (tooltipContainer: HTMLElement, target?: HTMLElement, disableMaskInteraction?: boolean): (() => void) => {
+export const setFocusTrap = (
+  tooltipContainer: HTMLElement,
+  target?: HTMLElement,
+  disableMaskInteraction?: boolean
+): (() => void) => {
   if (!tooltipContainer) {
     return;
   }
 
-  const { start: tooltipFirst, end: tooltipLast } = getEdgeFocusables(tooltipContainer, tooltipContainer);
-  const { start: targetFirst, end: targetLast } = getEdgeFocusables(undefined, target, true);
+  const { start: tooltipFirst, end: tooltipLast } = getEdgeFocusables(
+    tooltipContainer,
+    tooltipContainer
+  );
+  const { start: targetFirst, end: targetLast } = getEdgeFocusables(
+    undefined,
+    target,
+    true
+  );
 
   let tooltipBeforeStart: HTMLElement;
   let tooltipAfterEnd: HTMLElement;
@@ -88,11 +122,22 @@ export const setFocusTrap = (tooltipContainer: HTMLElement, target?: HTMLElement
   if (target && !disableMaskInteraction && targetFirst && targetLast) {
     tooltipAfterEnd = targetFirst;
     tooltipBeforeStart = targetLast;
-    targetTrapHandler = getFocusTrapHandler({ start: targetFirst, end: targetLast, beforeStart: tooltipLast, afterEnd: tooltipFirst })
+    targetTrapHandler = getFocusTrapHandler({
+      start: targetFirst,
+      end: targetLast,
+      beforeStart: tooltipLast,
+      afterEnd: tooltipFirst,
+    });
     target.addEventListener('keydown', targetTrapHandler);
   }
 
-  const tooltipTrapHandler = getFocusTrapHandler({ start: tooltipFirst, end: tooltipLast, beforeStart: tooltipBeforeStart, afterEnd: tooltipAfterEnd, lightningRod: tooltipContainer });
+  const tooltipTrapHandler = getFocusTrapHandler({
+    start: tooltipFirst,
+    end: tooltipLast,
+    beforeStart: tooltipBeforeStart,
+    afterEnd: tooltipAfterEnd,
+    lightningRod: tooltipContainer,
+  });
   tooltipContainer.addEventListener('keydown', tooltipTrapHandler);
 
   return () => {
@@ -101,8 +146,8 @@ export const setFocusTrap = (tooltipContainer: HTMLElement, target?: HTMLElement
     }
 
     tooltipContainer.removeEventListener('keydown', tooltipTrapHandler);
-  }
-}
+  };
+};
 
 interface NaiveShouldScrollArgs {
   root: Element;
@@ -131,7 +176,14 @@ export interface ShouldScrollArgs extends NaiveShouldScrollArgs {
 }
 
 export function shouldScroll(args: ShouldScrollArgs): boolean {
-  const { root, tooltip, target, disableAutoScroll, allowForeignTarget, selector: targetSelector } = args;
+  const {
+    root,
+    tooltip,
+    target,
+    disableAutoScroll,
+    allowForeignTarget,
+    selector: targetSelector,
+  } = args;
   if (!root || !tooltip || !target) {
     return false;
   }
@@ -160,24 +212,29 @@ export function targetChanged(args: TargetChangedArgs): boolean {
   }
 
   // when the target / target data are out of sync. usually due to a movingTarget, i.e. the target arg is more up to date than the pos/dims args
-  if ((!target && targetCoords && targetDims) || (target && !targetCoords && !targetDims)) {
+  if (
+    (!target && targetCoords && targetDims) ||
+    (target && !targetCoords && !targetDims)
+  ) {
     return true;
   }
 
   const currentTargetSize: Dims = getElementDims(target);
   const currentTargetPosition: Coords = getTargetPosition(root, target);
 
-  const sizeChanged: boolean = areaDiff(currentTargetSize, targetDims) > rerenderTolerance;
-  const positionChanged: boolean = dist(currentTargetPosition, targetCoords) > rerenderTolerance;
+  const sizeChanged: boolean =
+    areaDiff(currentTargetSize, targetDims) > rerenderTolerance;
+  const positionChanged: boolean =
+    dist(currentTargetPosition, targetCoords) > rerenderTolerance;
 
   return sizeChanged || positionChanged;
 }
 
 export interface TooltipDesyncArgs extends GetTooltipPositionArgs {
- tooltipPosition: Coords;
+  tooltipPosition: Coords;
 }
 
-// if there's no target, we need to ensure that the tooltip is centered, even if the window/container/scroll changes 
+// if there's no target, we need to ensure that the tooltip is centered, even if the window/container/scroll changes
 // if a target exists, there's not a tooltip desync in this context; there are two other functions
 // to determine if the tooltip/target are out of sync - this is solely for non-target cases
 export function tooltipDesync(args: TooltipDesyncArgs): boolean {
@@ -186,14 +243,16 @@ export function tooltipDesync(args: TooltipDesyncArgs): boolean {
     return false;
   }
 
-  const newPosition: OrientationCoords = getTooltipPosition({...args})
+  const newPosition: OrientationCoords = getTooltipPosition({ ...args });
 
   // if there's a difference between the newly calculated position and the current position, we need to update
   return dist(newPosition.coords, currentPosition) !== 0;
-  
 }
 
-export interface ShouldUpdateArgs extends TargetChangedArgs, ShouldScrollArgs, TooltipDesyncArgs { }
+export interface ShouldUpdateArgs
+  extends TargetChangedArgs,
+    ShouldScrollArgs,
+    TooltipDesyncArgs {}
 
 export function shouldUpdate(args: ShouldUpdateArgs): boolean {
   const { root, tooltip } = args;
@@ -201,10 +260,17 @@ export function shouldUpdate(args: ShouldUpdateArgs): boolean {
     return false; // bail if these aren't present; need them for calculations
   }
 
-  return targetChanged({ ...args }) || shouldScroll({ ...args }) || tooltipDesync({...args})
+  return (
+    targetChanged({ ...args }) ||
+    shouldScroll({ ...args }) ||
+    tooltipDesync({ ...args })
+  );
 }
 
-export const takeActionIfValid = async (action: () => void, actionValidator?: () => Promise<boolean>) => {
+export const takeActionIfValid = async (
+  action: () => void,
+  actionValidator?: () => Promise<boolean>
+) => {
   if (actionValidator) {
     const valid: boolean = await actionValidator();
     if (valid) {
@@ -213,9 +279,13 @@ export const takeActionIfValid = async (action: () => void, actionValidator?: ()
   } else {
     action();
   }
-}
+};
 
-export const setNextOnTargetClick = (target: HTMLElement, next: (fromTarget?: boolean) => void, validateNext?: () => Promise<boolean>): (() => void) => {
+export const setNextOnTargetClick = (
+  target: HTMLElement,
+  next: (fromTarget?: boolean) => void,
+  validateNext?: () => Promise<boolean>
+): (() => void) => {
   if (!target) {
     return;
   }
@@ -225,11 +295,11 @@ export const setNextOnTargetClick = (target: HTMLElement, next: (fromTarget?: bo
     const actionWithCleanup = () => {
       next(true);
       target.removeEventListener('click', clickHandler);
-    }
+    };
 
-    takeActionIfValid(actionWithCleanup, validateNext)
-  }
+    takeActionIfValid(actionWithCleanup, validateNext);
+  };
 
   target.addEventListener('click', clickHandler);
   return () => target.removeEventListener('click', clickHandler); // return so we can remove the event elsewhere if the action doesn't get called
-}
+};

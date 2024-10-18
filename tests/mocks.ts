@@ -1,5 +1,10 @@
 // have to mock getBoundingClientRect because jsdom isn't actually rendered
-export function mockGBCR(args: { x?: number, y?: number, w?: number, h?: number }): void {
+export function mockGBCR(args: {
+  x?: number;
+  y?: number;
+  w?: number;
+  h?: number;
+}): void {
   const { x, y, h, w } = args;
   Element.prototype.getBoundingClientRect = jest.fn(() => {
     return {
@@ -20,7 +25,7 @@ export function mockGBCR(args: { x?: number, y?: number, w?: number, h?: number 
         bottom: y + h,
         x: x,
         y: y,
-      })
-    }
-  })
+      }),
+    };
+  });
 }
